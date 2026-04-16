@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Talad Noi Heritage Map</title>
+
+<style>
+body{margin:0;font-family:sans-serif;background:#fff7f5;}
+
+/* HEADER */
+.header{
+  background:#fff1ee;
+  padding:10px 20px;
+  border-bottom:1px solid #ffd6d0;
+}
+.header h1{margin:0;font-size:18px;color:#5a3e2b;}
+.header span{color:#ff8a80;font-size:12px;}
+
+/* LAYOUT */
+.main{display:grid;grid-template-columns:1fr 320px;height:calc(100vh - 50px);}
+.map{height:100%;}
+.sidebar{background:#fff;padding:10px;overflow:auto;border-left:1px solid #ffd6d0;}
+
+/* FILTER */
+.filter{padding-bottom:10px;border-bottom:1px solid #ffd6d0;}
+button{
+  margin:3px;
+  padding:6px 12px;
+  border:none;
+  background:#ffb3ab;
+  color:#fff;
+  border-radius:20px;
+  cursor:pointer;
+}
+button.active{background:#ff6f61;}
+
+/* LIST */
+.place{padding:10px;border-bottom:1px solid #eee;cursor:pointer;}
+.place:hover{background:#fff0ee;}
+
+/* OVERLAY */
+#overlay{
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:rgba(0,0,0,0.3);
+  display:none;
+}
+
+/* POPUP (Bottom Sheet) */
+.popup{
+  position:fixed;
+  bottom:-100%;
+  left:0;
+  width:100%;
+  max-height:60vh;
+  background:#fff7f5;
+  padding:20px;
+  transition:0.3s;
+  box-shadow:0 -4px 20px rgba(0,0,0,0.15);
+  overflow-y:auto;
+  border-top-left-radius:20px;
+  border-top-right-radius:20px;
+}
+.popup.active{bottom:0;}
+
+.popup img{width:100%;border-radius:10px;}
+.popup h2{margin:10px 0 5px;color:#5a3e2b;}
+.popup p{font-size:14px;color:#7a5c58;}
+
+.close{
+  position:absolute;
+  right:20px;
+  top:10px;
+  cursor:pointer;
+  font-size:20px;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+  <h1>Talad Noi Map <span>唐人街 · ตลาดน้อย</span></h1>
+</div>
+
+<div class="main">
+
+<div class="map">
+  <div class="flourish-embed flourish-chart" data-src="visualisation/28541663">
+    <script src="https://public.flourish.studio/resources/embed.js"></script>
+  </div>
+</div>
+
+<div class="sidebar">
+  <div class="filter" id="filters"></div>
+  <div id="list"></div>
+</div>
+
+</div>
+
+<!-- overlay -->
+<div id="overlay" onclick="closePopup()"></div>
+
+<!-- popup -->
+<div class="popup" id="popup">
+
+  <!-- drag bar -->
+  <div style="
+    width:40px;
+    height:5px;
+    background:#ccc;
+    border-radius:10px;
+    margin:0 auto 10px;
+  "></div>
+
+  <span class="close" onclick="closePopup()">✕</span>
+
+  <img id="pimg">
+  <h2 id="ptitle"></h2>
+  <p id="pcat"></p>
+  <p id="pdesc"></p>
+  <a id="plink" target="_blank">ดูเพิ่มเติม →</a>
+
+</div>
+
+<script>
+
+// ===== DATA =====
+const data = [
+  {
+    "Name": "บ้านโซวเฮงไถ่",
+    "Lat": "13.73387393",
+    "Long": "100.5119573",
+    "Category": "Building",
+    "Description": "บ้านเก่าสถาปัตยกรรมแบบจีน แต่มีใต้ถุนสูงแบบไทย เป็นบ้านของคหบดีเชื้อสายจีนฮกเกี้ยน โดยต้นตระกูลเป็นนายภาษีอากรรังนก คอยเก็บภาษีให้ทางราชการ และยังมีอาชีพค้าขายทางเรือสำเภาอีกด้วย",
+    "Age": "229",
+    "Year": "2340",
+    "Link": "https://th.wikipedia.org/wiki/%E0%B8%9A%E0%B9%89%E0%B8%B2%E0%B8%99%E0%B9%82%E0%B8%8B%E0%B8%A7%E0%B9%80%E0%B8%AE%E0%B8%87%E0%B9%84%E0%B8%96%E0%B9%88",
+    "Media": "https://public.flourish.studio/uploads/3364761/53d04661-4acc-437b-9a7c-082d6641c485.jpg"
+  },
+  {
+    "Name": "ศาลเจ้าโจวซือกง (วัดซุนเล่งยี่)",
+    "Lat": "13.73459461",
+    "Long": "100.5117981",
+    "Category": "Shrine",
+    "Description": "ศาลเจ้าโจวซือกง เป็น 1 ใน 9 ศาลเจ้า ที่นักท่องเที่ยวไต้หวันต้องมากราบไหว้เพื่อเป็นสิริมงคลในชีวิต เป็นศาลเจ้าเก่าแก่ของชาวจีนฮกเกี้ยนที่ตลาดน้อย เพื่อเป็นที่ประดิษฐานของเทพเจ้าโจวซือกง และเทพเจ้าองค์อื่น ๆ ที่ชาวจีนให้ความเคารพนับถือ",
+    "Age": "222",
+    "Year": "2347",
+    "Link": "https://www.bangkokbiznews.com/lifestyle/1003366",
+    "Media": "https://public.flourish.studio/uploads/3364761/3ad1d4d3-7d15-41df-8e52-218fb856d69e.jpg"
+  },
+  {
+    "Name": "ศาลเจ้าโรงเกือก (ฮ้อนหว่องกุง)",
+    "Lat": "13.73308807",
+    "Long": "100.5122188",
+    "Category": "Shrine",
+    "Description": "ศาลเจ้าของชาวจีนฮากกา (จีนแคะ) ในหมู่บ้านชาวจีนฮกเกี้ยน เป็นที่ประดิษฐานรูปเคารพเทพเจ้าฮ้อนหว่องกุง สิ่งที่น่าสนใจในศาลเจ้า คือ ป้ายศิลากล่าวถึงพ่อค้าจีนฮากกา ได้เชิญรูปเคารพเทพเจ้าฮ้อนหว่องกุง จากเมืองจีนมาประดิษฐานในไทย ก่อนมีการสร้างศาลเจ้าที่เห็นในปัจจุบัน",
+    "Age": "136",
+    "Year": "2433",
+    "Link": "https://www.muangboranjournal.com/post/%E0%B8%AE%E0%B9%89%E0%B8%AD%E0%B8%99%E0%B8%AB%E0%B8%A7%E0%B9%88%E0%B8%AD%E0%B8%87%E0%B8%81%E0%B8%B8%E0%B8%87",
+    "Media": "https://public.flourish.studio/uploads/3364761/bcc2f9f8-e98e-431f-9dc1-a9707f26eab9.jpg"
+  },
+  {
+    "Name": "THE WAREHOUSE BANGKOK",
+    "Lat": "13.73400647",
+    "Long": "100.5144418",
+    "Category": "Community Space",
+    "Description": "คอมมูนิตี้สเปซ (Community Space) ที่รีโนเวทมาจากโกดังเก่าของบริษัทว่องไววิทย์ในย่านตลาดน้อย โดยมีคอนเซปต์หลักคือการเป็นพื้นที่รวมตัวของคนรัก Art, Food และ Music",
+    "Age": "50-60",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://neighborsandfriendscommunity.com/the-warehouse-talat-noi/",
+    "Media": "https://public.flourish.studio/uploads/3364761/e87681a7-18c0-436e-88c6-e9ab68ff4fd0.jpg"
+  },
+  {
+    "Name": "Talat Noi Street Art",
+    "Lat": "13.73405593",
+    "Long": "100.5126251",
+    "Category": "Street Art",
+    "Description": "งานศิลปะสตรีทอาร์ตที่กระจายตัวอยู่ทั่วชุมชนตลาดน้อย สะท้อนวิถีชีวิต ประวัติศาสตร์ และอัตลักษณ์ของชุมชน ผ่านผลงานของศิลปินไทยและต่างประเทศ",
+    "Age": "5-10",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://www.am2026thailand.go.th/explore-bangkok/talat-noi-song-wat-street-art",
+    "Media": "https://public.flourish.studio/uploads/3364761/6804451e-f519-4d50-9467-41b4930eb543.jpg"
+  },
+  {
+    "Name": "โบสถ์กาลหว่าร์",
+    "Lat": "13.73144476",
+    "Long": "100.5132729",
+    "Category": "Church",
+    "Description": "โบสถ์คริสต์นิกายโรมันคาทอลิก ศิลปะแบบนีโอโกธิค ตั้งอยู่ริมแม่น้ำเจ้าพระยา มีจุดเด่นคือพระรูปพระศพของพระเยซูเจ้า",
+    "Age": "135",
+    "Year": "2434",
+    "Link": "https://th.wikipedia.org/wiki/%E0%B9%82%E0%B8%9A%E0%B8%AA%E0%B8%96%E0%B9%8C%E0%B8%81%E0%B8%B2%E0%B8%A5%E0%B8%AB%E0%B8%A7%E0%B9%88%E0%B8%B2%E0%B8%A3%E0%B9%8C",
+    "Media": "https://public.flourish.studio/uploads/3364761/dc6500a1-975a-4ad0-9b00-b79ee3223369.jpg"
+  },
+  {
+    "Name": "วัดไตรมิตรวิทยารามวรวิหาร",
+    "Lat": "13.73788466",
+    "Long": "100.5135296",
+    "Category": "Temple",
+    "Description": "เป็นที่ประดิษฐาน \"\"พระพุทธมหาสุวรรณปฏิมากร\"\" หรือพระพุทธรูปทองคำบริสุทธิ์ขนาดใหญ่ที่สุดในโลก",
+    "Age": "90-100",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://th.wikipedia.org/wiki/%E0%B8%A7%E0%B8%B1%E0%B8%94%E0%B9%84%E0%B8%95%E0%B8%A3%E0%B8%A1%E0%B8%B4%E0%B8%95%E0%B8%A3%E0%B8%A7%E0%B8%B4%E0%B8%97%E0%B8%A2%E0%B8%B2%E0%B8%A3%E0%B8%B2%E0%B8%A1%E0%B8%A7%E0%B8%A3%E0%B8%A7%E0%B8%B4%E0%B8%AB%E0%B8%B2%E0%B8%A3",
+    "Media": "https://public.flourish.studio/uploads/3364761/8a4de491-a1b7-4333-b115-5054233fdea5.jpg"
+  },
+  {
+    "Name": "ธนาคารไทยพาณิชย์ สาขาตลาดน้อย",
+    "Lat": "13.73217627",
+    "Long": "100.5126748",
+    "Category": "Building",
+    "Description": "ธนาคารพาณิชย์แห่งแรกของไทย ตัวอาคารเป็นสถาปัตยกรรมแบบ Beaux-Arts และนีโอคลาสสิกที่สวยงามมาก",
+    "Age": "122",
+    "Year": "2447",
+    "Link": "https://th.wikipedia.org/wiki/%E0%B8%98%E0%B8%99%E0%B8%B2%E0%B8%84%E0%B8%B2%E0%B8%A3%E0%B9%84%E0%B8%97%E0%B8%A2%E0%B8%9E%E0%B8%B2%E0%B8%93%E0%B8%B4%E0%B8%8A%E0%B8%A2%E0%B9%8C_%E0%B8%AA%E0%B8%B2%E0%B8%82%E0%B8%B2%E0%B8%95%E0%B8%A5%E0%B8%B2%E0%B8%94%E0%B8%99%E0%B9%89%E0%B8%AD%E0%B8%A2",
+    "Media": "https://public.flourish.studio/uploads/3364761/fcecd972-48dd-4ca9-9adf-3cf7132c285b.jpg"
+  },
+  {
+    "Name": "ศาลเจ้าไท้ฮัว",
+    "Lat": "13.7348907",
+    "Long": "100.5155568",
+    "Category": "Shrine",
+    "Description": "ศาลเจ้าจีนในย่านตลาดน้อย เป็นสถานที่ยึดเหนี่ยวจิตใจของชุมชนชาวจีนในพื้นที่ ใช้ประกอบพิธีกรรมและเทศกาลสำคัญตามความเชื่อจีน",
+    "Age": "90-100",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://www.facebook.com/p/%E0%B8%A8%E0%B8%B2%E0%B8%A5%E0%B9%80%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B9%84%E0%B8%97%E0%B9%89%E0%B8%AE%E0%B8%B1%E0%B8%A7-%E0%B8%95%E0%B8%A5%E0%B8%B2%E0%B8%94%E0%B8%99%E0%B9%89%E0%B8%AD%E0%B8%A2-61563069756420/",
+    "Media": "https://public.flourish.studio/uploads/3364761/1100cb60-bf37-4268-b74a-00f8dc7e836d.jpg"
+  },
+  {
+    "Name": "วัดปทุมคงคาราชวรวิหาร",
+    "Lat": "13.73593684",
+    "Long": "100.5112118",
+    "Category": "Temple",
+    "Description": "วัดโบราณสมัยอยุธยา เป็นวัดที่มีความสำคัญในฐานะสถานที่ประกอบพิธีถวายพระเพลิงพระศพเจ้านาย",
+    "Age": "600-700",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://th.wikipedia.org/wiki/%E0%B8%A7%E0%B8%B1%E0%B8%94%E0%B8%9B%E0%B8%97%E0%B8%B8%E0%B8%A1%E0%B8%84%E0%B8%87%E0%B8%84%E0%B8%B2%E0%B8%A3%E0%B8%B2%E0%B8%8A%E0%B8%A7%E0%B8%A3%E0%B8%A7%E0%B8%B4%E0%B8%AB%E0%B8%B2%E0%B8%A3",
+    "Media": "https://public.flourish.studio/uploads/3364761/88c38379-75ab-44c2-b71a-7267b4b517be.jpg"
+  },
+  {
+    "Name": "ศาลเจ้าฮกเหลียนเก็ง (ปึงเถ่าม่า)",
+    "Lat": "13.73501616",
+    "Long": "100.512806",
+    "Category": "Shrine",
+    "Description": "ศาลเจ้าที่ประดิษฐานเทพ “ปึงเถ่าม่า” ซึ่งเป็นเทพสตรีที่ชาวจีนเคารพนับถือ เชื่อกันว่าช่วยคุ้มครองครอบครัวและชุมชน",
+    "Age": "120-130",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://www.facebook.com/Caiyong2493/posts/%E0%B8%A8%E0%B8%B2%E0%B8%A5%E0%B9%80%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%AE%E0%B8%81%E0%B9%80%E0%B8%A5%E0%B8%B5%E0%B9%88%E0%B8%A2%E0%B8%99%E0%B9%80%E0%B8%81%E0%B9%87%E0%B8%87%E0%B8%A8%E0%B8%B2%E0%B8%A5%E0%B9%80%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%AD%E0%B8%B5%E0%B8%81%E0%B8%AB%E0%B8%99%E0%B8%B6%E0%B9%88%E0%B8%87%E0%B9%81%E0%B8%AB%E0%B9%88%E0%B8%87%E0%B8%97%E0%B8%B5%E0%B9%88%E0%B8%84%E0%B8%AD%E0%B8%A2%E0%B9%83%E0%B8%AB%E0%B9%89%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B8%9B%E0%B8%81%E0%B8%9B%E0%B8%B1%E0%B8%81%E0%B8%A9%E0%B9%8C%E0%B8%A3%E0%B8%B1%E0%B8%81%E0%B8%A9%E0%B8%B2%E0%B8%8A%E0%B8%B2%E0%B8%A7%E0%B8%8A%E0%B8%B8%E0%B8%A1%E0%B8%8A%E0%B8%99%E0%B8%95%E0%B8%A5%E0%B8%B2%E0%B8%94%E0%B8%99%E0%B9%89%E0%B8%AD%E0%B8%A2-%E0%B9%81/329447848952906/",
+    "Media": "https://public.flourish.studio/uploads/3364761/f1833b62-4580-4b7f-ab7c-dedea70b14b4.jpg"
+  },
+  {
+    "Name": "พิพิธตลาดน้อย",
+    "Lat": "13.73505003",
+    "Long": "100.5112128",
+    "Category": "Museam",
+    "Description": "บ้านเก่าที่ถูกเปลี่ยนเป็นแหล่งเรียนรู้ บอกเล่าประวัติศาสตร์และวิถีชีวิตชาวจีนในย่านตลาดน้อย",
+    "Age": "90-100",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://emuseum-taladnoi.treasury.go.th/",
+    "Media": "https://public.flourish.studio/uploads/3364761/ce441700-5eb7-4b27-b861-b7dc75593dc5.jpg"
+  },
+  {
+    "Name": "ตรอกชุมชนตลาดน้อย",
+    "Lat": "13.73418261",
+    "Long": "100.5121079",
+    "Category": "Community Space",
+    "Description": "ตรอกเก่าแก่ที่สะท้อนวิถีชีวิตดั้งเดิมของชุมชนจีนในตลาดน้อย มีทั้งบ้านเรือน ร้านค้า และศิลปะสตรีทอาร์ต",
+    "Age": "200",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://wikicommunity.sac.or.th/community/329",
+    "Media": "https://public.flourish.studio/uploads/3364761/5c491db7-aedd-4d1b-90c4-a1dce09d6300.jpg"
+  },
+  {
+    "Name": "วัดอุภัยราชบำรุง (วัดญวน ตลาดน้อย)",
+    "Lat": "13.73515829",
+    "Long": "100.5138812",
+    "Category": "Temple",
+    "Description": "วัดญวนแห่งแรกในไทย (อนัมนิกาย) เดิมชื่อ \"\"วัดกั้นก๋ง\"\" มีศิลปะผสมผสานไทย-จีน-ญวน",
+    "Age": "239",
+    "Year": "2330",
+    "Link": "https://th.trip.com/moments/detail/bangkok-191-119996180/",
+    "Media": "https://public.flourish.studio/uploads/3364761/78b59447-aeee-4423-9445-0ad9de43f3e1.jpg"
+  },
+  {
+    "Name": "ริเวอร์ ซิตี้ แบงค็อก",
+    "Lat": "13.73030916",
+    "Long": "100.5132581",
+    "Category": "Museam",
+    "Description": "ศูนย์รวมศิลปะและโบราณวัตถุริมแม่น้ำเจ้าพระยา เป็นพื้นที่จัดนิทรรศการศิลปะระดับโลก",
+    "Age": "42",
+    "Year": "2527",
+    "Link": "https://rivercitybangkok.com/th/",
+    "Media": "https://public.flourish.studio/uploads/3364761/75a3f392-58c2-4bf4-8c22-e3e99c5fa33a.jpg"
+  },
+  {
+    "Name": "965bkk",
+    "Lat": "13.73300981",
+    "Long": "100.51325",
+    "Category": "Community Space",
+    "Description": "พื้นที่สร้างสรรค์และคอมมูนิตี้สเปซขนาดเล็กในตลาดน้อย ใช้จัดกิจกรรมศิลปะ เวิร์กช็อป และนิทรรศการ",
+    "Age": "200",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://965bkk.com/",
+    "Media": "https://public.flourish.studio/uploads/3364761/ce97cc3d-5d03-486a-9fec-75719b3957d8.jpg"
+  },
+  {
+    "Name": "Gallery Kalyani",
+    "Lat": "13.73071563",
+    "Long": "100.5128396",
+    "Category": "Museam",
+    "Description": "แกลเลอรีศิลปะร่วมสมัย จัดแสดงผลงานศิลปินไทยและนานาชาติ เน้นงานศิลปะเชิงทดลองและความคิดสร้างสรรค์",
+    "Age": "21",
+    "Year": "2548",
+    "Link": "https://rivercitybangkok.com/th/gallery/gallery-kalyani/",
+    "Media": "https://public.flourish.studio/uploads/3364761/f3810932-9c22-4175-aefb-d7a73797df02.jpg"
+  },
+  {
+    "Name": "บ้านริมน้ำ ตลาดน้อย",
+    "Lat": "13.7336238",
+    "Long": "100.5118532",
+    "Category": "Restaurant",
+    "Description": "ร้านอาหารบรรยากาศริมน้ำเจ้าพระยา เน้นอาหารไทยและซีฟู้ด พร้อมวิวแม่น้ำ",
+    "Age": "10-20",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://maps.app.goo.gl/RjJ9kb71m6CuAtNx6",
+    "Media": "https://public.flourish.studio/uploads/3364761/39b23448-e255-4bfb-8074-64ed8a2bd438.jpg"
+  },
+  {
+    "Name": "กะหรี่ปั๊บ คุณปุ๊",
+    "Lat": "13.73359213",
+    "Long": "100.5139559",
+    "Category": "Restaurant",
+    "Description": "ร้านกะหรี่ปั๊บชื่อดังในชุมชนตลาดน้อย ไส้แน่น แป้งกรอบ เป็นของกินเล่นยอดนิยม",
+    "Age": "20-30",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://maps.app.goo.gl/g43Tf4aRg2He6gG97",
+    "Media": "https://public.flourish.studio/uploads/3364761/d50e7791-11e8-4215-b2f4-7962e1baa834.jpg"
+  },
+  {
+    "Name": "เป็ดตุ๋น เจ้าท่า",
+    "Lat": "13.73321196",
+    "Long": "100.5131708",
+    "Category": "Restaurant",
+    "Description": "ร้านระดับตำนาน ยอดนิยมของคนทำงานย่านนั้น เป็ดเนื้อนุ่ม น้ำซุปเข้มข้น",
+    "Age": "10-20",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://maps.app.goo.gl/W5zAUNztrnsxQvAE9",
+    "Media": "https://public.flourish.studio/uploads/3364761/c1093500-aeb6-4ecd-8d6a-e69c0ce98643.jpg"
+  },
+  {
+    "Name": "ก๋วยเตี๋ยวรู ตลาดน้อย",
+    "Lat": "13.73318464",
+    "Long": "100.5144381",
+    "Category": "Restaurant",
+    "Description": "ร้านลับในซอยแคบที่เป็นเอกลักษณ์ ขายมานานกว่า 50 ปี เมนูเด็ดคือหมูแดงอบน้ำผึ้ง",
+    "Age": "50-60",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://maps.app.goo.gl/FXzf1CZgc44WrGNb8",
+    "Media": "https://public.flourish.studio/uploads/3364761/08b28905-a8b2-4135-9d3d-5827f3ddb4ca.jpg"
+  },
+  {
+    "Name": "ซี่โครงปราณ กทม.",
+    "Lat": "13.73182634",
+    "Long": "100.5142715",
+    "Category": "Restaurant",
+    "Description": "ร้านอาหารสตรีทฟู้ดที่ขึ้นชื่อเรื่องซี่โครงหมูรสเข้มข้น สไตล์ไทย-จีน",
+    "Age": "30-40",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://maps.app.goo.gl/pG1Z4nMoAN3Lsjq67",
+    "Media": "https://public.flourish.studio/uploads/3364761/ebc9c92a-a4fd-4860-8bed-81c1583a99a9.jpg"
+  },
+  {
+    "Name": "ข้าวผัดปูตลาดน้อย",
+    "Lat": "13.73331264",
+    "Long": "100.5145696",
+    "Category": "Restaurant",
+    "Description": "ร้านอาหารตามสั่งที่ขึ้นชื่อเรื่องข้าวผัดปู ใช้วัตถุดิบสดใหม่ในราคาย่อมเยา",
+    "Age": "10-20",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://maps.app.goo.gl/iJGd3zS3b6qcr9oN7",
+    "Media": "https://public.flourish.studio/uploads/3364761/b86f1c26-4cc4-4bec-b6a1-4b129a3f9cb7.jpg"
+  },
+  {
+    "Name": "ข้าวหมูแดงสีมรกต",
+    "Lat": "13.73729106",
+    "Long": "100.5147729",
+    "Category": "Restaurant",
+    "Description": "หนึ่งในร้านข้าวหมูแดงที่ดีที่สุดในกรุงเทพฯ จุดเด่นคือหมูกรอบที่ใช้เตาถ่านย่าง",
+    "Age": "70-80",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://maps.app.goo.gl/sUN6K7Es5pcSwrGr6",
+    "Media": "https://public.flourish.studio/uploads/3364761/ed64c8b7-5ed3-4d89-86d6-8520ee05d039.jpg"
+  },
+  {
+    "Name": "แดง ราชาหอยทอด",
+    "Lat": "13.73772705",
+    "Long": "100.5146355",
+    "Category": "Restaurant",
+    "Description": "ร้านหอยทอดระดับตำนานย่านเยาวราช-ตลาดน้อย แป้งกรอบนอกนุ่มใน ใช้หอยสด ตัวใหญ่ เสิร์ฟพร้อมน้ำจิ้มรสจัดจ้าน เป็นหนึ่งในร้านสตรีทฟู้ดชื่อดังที่มีคนต่อคิวตลอด",
+    "Age": "40-50",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://maps.app.goo.gl/fwGQNbg4J2awJeSc9",
+    "Media": "https://public.flourish.studio/uploads/3364761/6474c2ad-30d1-42ef-9b2f-7cbd2f9fa6b7.jpg"
+  },
+  {
+    "Name": "เฮง กระเพาะปลาตุ๋นยาจีนเลิศรส",
+    "Lat": "13.7372809",
+    "Long": "100.5149024",
+    "Category": "Restaurant",
+    "Description": "ร้านกระเพาะปลาชื่อดังที่โดดเด่นเรื่องน้ำซุปตุ๋นยาจีนรสเข้มข้น หอมสมุนไพร เนื้อกระเพาะปลานุ่ม เสิร์ฟพร้อมเครื่องแน่น ได้รับความนิยมทั้งคนพื้นที่และนักท่องเที่ยว",
+    "Age": "30-40",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://maps.app.goo.gl/bokvRpJSUBngB2619",
+    "Media": "https://public.flourish.studio/uploads/3364761/634abf67-28a4-4657-9327-d299a3dda684.jpg"
+  },
+  {
+    "Name": "ขาหมูแช่เย็น ตือคาตั่ง",
+    "Lat": "13.73534893",
+    "Long": "100.5121451",
+    "Category": "Restaurant",
+    "Description": "ร้านขาหมูเก่าแก่สไตล์จีนแต้จิ๋ว เมนูเด่นคือขาหมูแช่เย็น เนื้อนุ่ม หนังเด้ง เสิร์ฟพร้อมน้ำจิ้มสูตรเฉพาะ เป็นร้านระดับตำนานของย่านตลาดน้อย",
+    "Age": "80-100",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://maps.app.goo.gl/LUMyRSUxJLugf6PF8",
+    "Media": "https://public.flourish.studio/uploads/3364761/b5232eb7-48da-45ac-b942-b245e1cb6361.jpg"
+  },
+  {
+    "Name": "ไฉ่ย้ง",
+    "Lat": "13.73464023",
+    "Long": "100.5130624",
+    "Category": "Cafe",
+    "Description": "คาเฟ่และร้านน้ำชาในบรรยากาศจีนดั้งเดิม ผสมความร่วมสมัย",
+    "Age": "10-20",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://maps.app.goo.gl/3EaxqDMA31VtCjRJ8",
+    "Media": "https://public.flourish.studio/uploads/3364761/c1e46913-659f-4d88-af3e-78df338cea28.jpg"
+  },
+  {
+    "Name": "The Coffee Store Charoenkrung",
+    "Lat": "13.73577753",
+    "Long": "100.5137786",
+    "Category": "Cafe",
+    "Description": "คาเฟ่ Specialty Coffee ที่เน้นเมล็ดกาแฟคุณภาพและการชงแบบมืออาชีพ",
+    "Age": "5-10",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://maps.app.goo.gl/PDUp9VWK2jHQKRQJ9",
+    "Media": "https://public.flourish.studio/uploads/3364761/36528667-945a-4a08-884b-94d5dc1b8ca5.jpg"
+  },
+  {
+    "Name": "Sunset Coffee Roaster - Charoenkrung Sunset เจริญกรุง",
+    "Lat": "13.73627518",
+    "Long": "100.5136605",
+    "Category": "Cafe",
+    "Description": "คาเฟ่และโรงคั่วกาแฟที่มีเอกลักษณ์ด้านรสชาติและดีไซน์ร่วมสมัย",
+    "Age": "5-10",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://maps.app.goo.gl/q51bRGCKf3ChjJD39",
+    "Media": "https://public.flourish.studio/uploads/3364761/6179c1c6-6bfc-44bf-9b7a-401723dbc13c.jpg"
+  },
+  {
+    "Name": "ฮงเซียงกง",
+    "Lat": "13.73501412",
+    "Long": "100.5115791",
+    "Category": "Cafe",
+    "Description": "คาเฟ่ริมน้ำที่รีโนเวทจากบ้านไม้เก่าแก่ อัดแน่นด้วยของสะสมโบราณ เป็นจุด Check-in ยอดฮิตที่สุดในตอนนี้",
+    "Age": "200",
+    "Year": "ไม่ทราบปีที่สร้างแน่ชัด",
+    "Link": "https://maps.app.goo.gl/osFS7gxxtHUoDcuFA",
+    "Media": "https://public.flourish.studio/uploads/3364761/cb1df50a-fd0f-433d-abad-4d4e57f7f700.jpg"
+  }
+];
+
+// ===== FILTER =====
+const categories = ["ทั้งหมด", ...new Set(data.map(d => d.Category))];
+
+const filterDiv = document.getElementById("filters");
+categories.forEach(cat=>{
+  const btn=document.createElement("button");
+  btn.innerText=cat;
+  btn.onclick=()=>{
+    document.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    render(cat);
+  };
+  filterDiv.appendChild(btn);
+});
+
+// ===== LIST =====
+function render(filter="ทั้งหมด"){
+  const list=document.getElementById("list");
+  list.innerHTML="";
+
+  data
+  .filter(d=>filter==="ทั้งหมด" || d.Category===filter)
+  .forEach(d=>{
+    const div=document.createElement("div");
+    div.className="place";
+
+    div.innerHTML=`<b>${d.Name}</b><br>${d.Category} · ${d.Age} ปี`;
+
+    div.onclick=()=>openPopup(d);
+
+    list.appendChild(div);
+  });
+}
+
+// ===== POPUP =====
+function openPopup(d){
+  document.getElementById("popup").classList.add("active");
+  document.getElementById("overlay").style.display="block";
+
+  document.getElementById("ptitle").innerText=d.Name;
+  document.getElementById("pcat").innerText=d.Category + " · " + d.Age + " ปี";
+  document.getElementById("pdesc").innerText=d.Description;
+  document.getElementById("pimg").src=d.Media;
+  document.getElementById("plink").href=d.Link;
+}
+
+function closePopup(){
+  document.getElementById("popup").classList.remove("active");
+  document.getElementById("overlay").style.display="none";
+}
+
+render();
+
+</script>
+
+</body>
+</html>
