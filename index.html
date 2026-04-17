@@ -1,133 +1,366 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Talad Noi Heritage Map</title>
-
 <style>
-body{margin:0;font-family:sans-serif;background:#fff7f5;}
 
-/* HEADER */
+/* ── RESET ── */
+*{box-sizing:border-box;margin:0;padding:0;}
+
+/* ── BASE ── */
+body{
+  font-family:'Segoe UI',Arial,sans-serif;
+  background:#fdf0ef;
+  color:#4a2828;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+/* ── HEADER ── */
 .header{
-  background:#fff1ee;
-  padding:10px 20px;
-  border-bottom:1px solid #ffd6d0;
+  background:#fff;
+  border-bottom:1px solid #f5c5c0;
+  padding:0 20px;
+  height:52px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-shrink:0;
 }
-.header h1{margin:0;font-size:18px;color:#5a3e2b;}
-.header span{color:#ff8a80;font-size:12px;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-dot{
+  width:30px;height:30px;
+  background:#f8d7d4;
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+}
+.brand-dot svg{width:16px;height:16px;}
+.brand-name{font-size:15px;font-weight:700;color:#c0392b;letter-spacing:.5px;}
+.brand-sub{font-size:11px;color:#c9a0a0;letter-spacing:2px;margin-top:1px;}
+.header-meta{font-size:11px;color:#c9a0a0;letter-spacing:1px;}
 
-/* LAYOUT */
-.main{display:grid;grid-template-columns:1fr 320px;height:calc(100vh - 50px);}
-.map{height:100%;}
-.sidebar{background:#fff;padding:10px;overflow:auto;border-left:1px solid #ffd6d0;}
+/* ── LAYOUT ── */
+.main{
+  display:grid;
+  grid-template-columns:1fr 300px;
+  flex:1;
+  min-height:0;
+}
 
-/* FILTER */
-.filter{padding-bottom:10px;border-bottom:1px solid #ffd6d0;}
-button{
-  margin:3px;
-  padding:6px 12px;
-  border:none;
-  background:#ffb3ab;
-  color:#fff;
+/* ── MAP ── */
+.map-wrap{position:relative;height:100%;}
+.map-wrap .flourish-embed{height:100%!important;}
+.map-wrap iframe{height:100%!important;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  background:#fff;
+  border-left:1px solid #f5c5c0;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+
+/* ── FILTER BAR ── */
+.filter-bar{
+  padding:12px 14px 10px;
+  border-bottom:1px solid #f5c5c0;
+  flex-shrink:0;
+}
+.filter-label{
+  font-size:10px;
+  font-weight:700;
+  color:#c9a0a0;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+.filter-chips{display:flex;flex-wrap:wrap;gap:5px;}
+.chip{
+  font-size:11px;
+  padding:4px 11px;
   border-radius:20px;
+  border:1px solid #f5c5c0;
+  background:transparent;
+  color:#a06060;
   cursor:pointer;
+  font-family:inherit;
+  transition:all .15s;
 }
-button.active{background:#ff6f61;}
+.chip:hover{background:#fff0ee;border-color:#e8a0a0;}
+.chip.active{
+  background:#f8d7d4;
+  border-color:#e08080;
+  color:#c0392b;
+  font-weight:700;
+}
 
-/* LIST */
-.place{padding:10px;border-bottom:1px solid #eee;cursor:pointer;}
-.place:hover{background:#fff0ee;}
+/* ── PLACE LIST ── */
+.place-list{flex:1;overflow-y:auto;}
+.place-list::-webkit-scrollbar{width:4px;}
+.place-list::-webkit-scrollbar-track{background:transparent;}
+.place-list::-webkit-scrollbar-thumb{background:#f5c5c0;border-radius:4px;}
 
-/* OVERLAY */
+.place-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:11px 14px;
+  border-bottom:1px solid #faeaea;
+  cursor:pointer;
+  transition:background .15s;
+}
+.place-item:hover{background:#fff8f7;}
+.place-item:hover .place-arrow{opacity:1;}
+
+.cat-dot{
+  width:8px;height:8px;
+  border-radius:50%;
+  flex-shrink:0;
+}
+.place-text{flex:1;min-width:0;}
+.place-name{
+  font-size:12.5px;
+  font-weight:600;
+  color:#4a2828;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.place-meta{
+  font-size:11px;
+  color:#c9a0a0;
+  margin-top:2px;
+}
+.place-arrow{
+  font-size:14px;
+  color:#e08080;
+  opacity:0;
+  transition:opacity .15s;
+  flex-shrink:0;
+}
+
+.sidebar-footer{
+  padding:10px 14px;
+  border-top:1px solid #f5c5c0;
+  font-size:10px;
+  color:#d4a8a8;
+  letter-spacing:.8px;
+  flex-shrink:0;
+}
+
+/* ── OVERLAY ── */
 #overlay{
-  position:fixed;
-  top:0;left:0;
-  width:100%;height:100%;
-  background:rgba(0,0,0,0.3);
+  position:fixed;inset:0;
+  background:rgba(80,20,20,.25);
+  backdrop-filter:blur(2px);
   display:none;
+  z-index:100;
 }
 
-/* POPUP (Bottom Sheet) */
+/* ── POPUP (Modal) ── */
 .popup{
   position:fixed;
-  bottom:-100%;
-  left:0;
+  top:50%;left:50%;
+  transform:translate(-50%,-60%);
+  width:340px;
+  background:#fff;
+  border-radius:14px;
+  border:1px solid #f5c5c0;
+  overflow:hidden;
+  display:none;
+  z-index:101;
+  opacity:0;
+  transition:transform .25s ease, opacity .2s ease;
+}
+.popup.active{
+  display:block;
+  opacity:1;
+  transform:translate(-50%,-50%);
+}
+
+/* popup image */
+.popup-img-wrap{
+  position:relative;
   width:100%;
-  max-height:60vh;
-  background:#fff7f5;
-  padding:20px;
-  transition:0.3s;
-  box-shadow:0 -4px 20px rgba(0,0,0,0.15);
-  overflow-y:auto;
-  border-top-left-radius:20px;
-  border-top-right-radius:20px;
+  height:160px;
+  background:#faeaea;
+  overflow:hidden;
 }
-.popup.active{bottom:0;}
-
-.popup img{width:100%;border-radius:10px;}
-.popup h2{margin:10px 0 5px;color:#5a3e2b;}
-.popup p{font-size:14px;color:#7a5c58;}
-
-.close{
+.popup-img-wrap img{
+  width:100%;height:100%;
+  object-fit:cover;
+  display:block;
+}
+.popup-cat-badge{
   position:absolute;
-  right:20px;
-  top:10px;
-  cursor:pointer;
-  font-size:20px;
+  top:10px;left:12px;
+  background:rgba(255,255,255,.9);
+  border:1px solid #f5c5c0;
+  color:#c0392b;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:1px;
+  padding:3px 9px;
+  border-radius:20px;
 }
+.popup-close{
+  position:absolute;
+  top:10px;right:12px;
+  width:26px;height:26px;
+  background:rgba(255,255,255,.9);
+  border:1px solid #f5c5c0;
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  font-size:13px;
+  color:#a06060;
+  font-weight:700;
+  transition:background .15s;
+  line-height:1;
+}
+.popup-close:hover{background:#fff0ee;}
+
+/* popup body */
+.popup-body{padding:14px 16px 16px;}
+.popup-title{
+  font-size:15px;
+  font-weight:700;
+  color:#3d1a1a;
+  line-height:1.3;
+  margin-bottom:5px;
+}
+.popup-age{
+  font-size:11px;
+  color:#c9a0a0;
+  margin-bottom:10px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.popup-age::before{
+  content:'';
+  display:inline-block;
+  width:16px;height:1px;
+  background:#f5c5c0;
+}
+.popup-desc{
+  font-size:12.5px;
+  color:#7a5050;
+  line-height:1.7;
+  margin-bottom:14px;
+  display:-webkit-box;
+  -webkit-line-clamp:4;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.popup-link{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+  font-weight:700;
+  color:#fff;
+  background:#e08080;
+  padding:7px 16px;
+  border-radius:8px;
+  text-decoration:none;
+  letter-spacing:.3px;
+  transition:background .15s;
+}
+.popup-link:hover{background:#c0392b;}
+.popup-link svg{width:12px;height:12px;}
+
+/* ── CATEGORY COLORS ── */
+[data-cat="Shrine"]       .cat-dot{background:#e07070;}
+[data-cat="Temple"]       .cat-dot{background:#e09060;}
+[data-cat="Church"]       .cat-dot{background:#9090d0;}
+[data-cat="Building"]     .cat-dot{background:#70a0c0;}
+[data-cat="Community Space"] .cat-dot{background:#80b890;}
+[data-cat="Street Art"]   .cat-dot{background:#c080c0;}
+[data-cat="Restaurant"]   .cat-dot{background:#e06060;}
+[data-cat="Cafe"]         .cat-dot{background:#c09060;}
+[data-cat="Museum"]       .cat-dot{background:#8090c0;}
+[data-cat="Gallery"]      .cat-dot{background:#b07090;}
+
 </style>
-
 </head>
-
 <body>
 
+<!-- HEADER -->
 <div class="header">
-  <h1>Talad Noi Map <span>唐人街 · ตลาดน้อย</span></h1>
+  <div class="brand">
+    <div class="brand-dot">
+      <svg viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="8" r="5.5" stroke="#c0392b" stroke-width="1.4"/>
+        <circle cx="8" cy="8" r="2" fill="#e08080"/>
+        <line x1="8" y1="1" x2="8" y2="3.5" stroke="#c0392b" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="8" y1="12.5" x2="8" y2="15" stroke="#c0392b" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="1" y1="8" x2="3.5" y2="8" stroke="#c0392b" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="12.5" y1="8" x2="15" y2="8" stroke="#c0392b" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-name">TALAT NOI MAP</div>
+      <div class="brand-sub">唐人街 · ตลาดน้อย</div>
+    </div>
+  </div>
+  <div class="header-meta">Heritage Map · กรุงเทพฯ</div>
 </div>
 
+<!-- MAIN -->
 <div class="main">
 
-<div class="map">
+  <!-- MAP -->
   <div class="flourish-embed flourish-chart" data-src="visualisation/28541663">
-    <script src="https://public.flourish.studio/resources/embed.js"></script>
+    <script src="https://public.flourish.studio/resources/embed.js">
+    </script>
+    <noscript>
+      <img src="https://public.flourish.studio/visualisation/28541663/thumbnail" width="100%" alt="visualization" />
+    </noscript>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <div class="filter-bar">
+      <div class="filter-label">หมวดหมู่</div>
+      <div class="filter-chips" id="filters"></div>
+    </div>
+
+    <div class="place-list" id="list"></div>
+
+    <div class="sidebar-footer" id="sidebar-count"></div>
+
   </div>
 </div>
 
-<div class="sidebar">
-  <div class="filter" id="filters"></div>
-  <div id="list"></div>
-</div>
-
-</div>
-
-<!-- overlay -->
+<!-- OVERLAY -->
 <div id="overlay" onclick="closePopup()"></div>
 
-<!-- popup -->
+<!-- POPUP MODAL -->
 <div class="popup" id="popup">
-
-  <!-- drag bar -->
-  <div style="
-    width:40px;
-    height:5px;
-    background:#ccc;
-    border-radius:10px;
-    margin:0 auto 10px;
-  "></div>
-
-  <span class="close" onclick="closePopup()">✕</span>
-
-  <img id="pimg">
-  <h2 id="ptitle"></h2>
-  <p id="pcat"></p>
-  <p id="pdesc"></p>
-  <a id="plink" target="_blank">ดูเพิ่มเติม →</a>
-
+  <div class="popup-img-wrap">
+    <img id="pimg" src="" alt="">
+    <div class="popup-cat-badge" id="pcat"></div>
+    <div class="popup-close" onclick="closePopup()">✕</div>
+  </div>
+  <div class="popup-body">
+    <div class="popup-title" id="ptitle"></div>
+    <div class="popup-age" id="page"></div>
+    <div class="popup-desc" id="pdesc"></div>
+    <a class="popup-link" id="plink" href="#" target="_blank">
+      <svg viewBox="0 0 12 12" fill="none"><path d="M5 2H2a1 1 0 00-1 1v7a1 1 0 001 1h7a1 1 0 001-1V7M7 1h4m0 0v4M11 1L5.5 6.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      ดูข้อมูลเพิ่มเติม
+    </a>
+  </div>
 </div>
 
 <script>
-
-// ===== DATA =====
 const data = [
   {
     "Name": "บ้านโซวเฮงไถ่",
@@ -472,59 +705,79 @@ const data = [
   }
 ];
 
-// ===== FILTER =====
-const categories = ["ทั้งหมด", ...new Set(data.map(d => d.Category))];
+// ── CATEGORY DOT COLORS ──
+const dotColors = {
+  "Shrine":"#e07070","Temple":"#e09060","Church":"#9090d0",
+  "Building":"#70a0c0","Community Space":"#80b890","Street Art":"#c080c0",
+  "Restaurant":"#e06060","Cafe":"#c09060","Museum":"#8090c0","Gallery":"#b07090"
+};
 
-const filterDiv = document.getElementById("filters");
-categories.forEach(cat=>{
-  const btn=document.createElement("button");
-  btn.innerText=cat;
-  btn.onclick=()=>{
-    document.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
+// ── FILTERS ──
+const categories = ["ทั้งหมด", ...new Set(data.map(d => d.Category))];
+const filterWrap = document.getElementById("filters");
+
+categories.forEach(cat => {
+  const btn = document.createElement("button");
+  btn.className = "chip" + (cat === "ทั้งหมด" ? " active" : "");
+  btn.textContent = cat;
+  btn.onclick = () => {
+    document.querySelectorAll(".chip").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     render(cat);
   };
-  filterDiv.appendChild(btn);
+  filterWrap.appendChild(btn);
 });
 
-// ===== LIST =====
-function render(filter="ทั้งหมด"){
-  const list=document.getElementById("list");
-  list.innerHTML="";
+// ── LIST ──
+function render(filter = "ทั้งหมด") {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+  const items = data.filter(d => filter === "ทั้งหมด" || d.Category === filter);
 
-  data
-  .filter(d=>filter==="ทั้งหมด" || d.Category===filter)
-  .forEach(d=>{
-    const div=document.createElement("div");
-    div.className="place";
+  items.forEach(d => {
+    const div = document.createElement("div");
+    div.className = "place-item";
+    div.setAttribute("data-cat", d.Category);
 
-    div.innerHTML=`<b>${d.Name}</b><br>${d.Category} · ${d.Age} ปี`;
-
-    div.onclick=()=>openPopup(d);
-
+    const color = dotColors[d.Category] || "#e08080";
+    div.innerHTML = `
+      <div class="cat-dot" style="background:${color}"></div>
+      <div class="place-text">
+        <div class="place-name">${d.Name}</div>
+        <div class="place-meta">${d.Category} · ${d.Age} ปี</div>
+      </div>
+      <div class="place-arrow">›</div>
+    `;
+    div.onclick = () => openPopup(d);
     list.appendChild(div);
   });
+
+  document.getElementById("sidebar-count").textContent =
+    `แสดง ${items.length} สถานที่ · ตลาดน้อย กรุงเทพฯ`;
 }
 
-// ===== POPUP =====
-function openPopup(d){
+// ── POPUP ──
+function openPopup(d) {
+  document.getElementById("ptitle").textContent = d.Name;
+  document.getElementById("pcat").textContent = d.Category;
+  document.getElementById("page").textContent = `อายุ ${d.Age} ปี · ก่อตั้ง พ.ศ. ${d.Year}`;
+  document.getElementById("pdesc").textContent = d.Description;
+  document.getElementById("pimg").src = d.Media;
+  document.getElementById("plink").href = d.Link;
+
+  document.getElementById("overlay").style.display = "block";
   document.getElementById("popup").classList.add("active");
-  document.getElementById("overlay").style.display="block";
-
-  document.getElementById("ptitle").innerText=d.Name;
-  document.getElementById("pcat").innerText=d.Category + " · " + d.Age + " ปี";
-  document.getElementById("pdesc").innerText=d.Description;
-  document.getElementById("pimg").src=d.Media;
-  document.getElementById("plink").href=d.Link;
 }
 
-function closePopup(){
+function closePopup() {
   document.getElementById("popup").classList.remove("active");
-  document.getElementById("overlay").style.display="none";
+  document.getElementById("overlay").style.display = "none";
 }
+
+// close on Escape
+document.addEventListener("keydown", e => { if (e.key === "Escape") closePopup(); });
 
 render();
-
 </script>
 
 </body>
